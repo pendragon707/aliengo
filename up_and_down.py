@@ -25,6 +25,18 @@ def jointLinearInterpolation(initPos, targetPos, rate):
     p = initPos*(1-rate) + targetPos*rate
     return p
 
+def setup_motor(cmd, num_motor, q, dq, Kp, Kd, tau):
+    cmd.motorCmd[num_motor].q = q
+    cmd.motorCmd[num_motor].dq = dq
+    cmd.motorCmd[num_motor].Kp = Kp
+    cmd.motorCmd[num_motor].Kd = Kd
+    cmd.motorCmd[num_motor].tau = tau
+
+def setup_feet(cmd, lists_motors):
+    assert all(len(lists_motors[0]) == len(l) for l in lists_motors[1:]), "not valid motor data"
+
+    for motor in lists_motors:
+        setup_motor(cmd, motor[0], motor[1], motor[2], motor[3], motor[4], motor[5] )
 
 if __name__ == '__main__':
 
@@ -32,6 +44,8 @@ if __name__ == '__main__':
          'FL_0':3, 'FL_1':4, 'FL_2':5, 
          'RR_0':6, 'RR_1':7, 'RR_2':8, 
          'RL_0':9, 'RL_1':10, 'RL_2':11 }
+
+         
     PosStopF  = math.pow(10,9)
     VelStopF  = 16000.0
     HIGHLEVEL = 0x00
@@ -66,9 +80,7 @@ if __name__ == '__main__':
         udp.Recv()
         udp.GetRecv(state)
         
-        if( motiontime >= 0):
-
-            # first, get record initial position
+        if( motiontime >= 0):            
             if( motiontime >= 0 and motiontime < 10):
 
                 for num, value in enumerate(d.values()):
@@ -76,32 +88,18 @@ if __name__ == '__main__':
 
                 print("Front: ", qInit[0], qInit[1], qInit[2])
                 print("Rear: ", qInit[6], qInit[7], qInit[8])
-            # second, move to the origin point of a sine movement with Kp Kd
+            
             if( motiontime >= 10 and motiontime < 400):
                 rate_count += 1
-                rate = rate_count/200.0                       # needs count to 200
-                # Kp = [5, 5, 5]
-                # Kd = [1, 1, 1]
-                # Kp = [20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20]
-                # Kd = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+                rate = rate_count/200.0                      
+                
                 Kp = [90] * 12
                 Kd = [1] * 12
 
                 for num, value in enumerate(d.values()):
                     qDes[num] = jointLinearInterpolation(qInit[num], start_q[num], rate)
-            
-            # last, do sine wave
-            freq_Hz = 1
-            # freq_Hz = 5
-            freq_rad = freq_Hz * 2* math.pi
-            # t = dt*sin_count
-            t = 0
-            if( motiontime >= 400):
-                sin_count += 1
-                jointf = 0
-                jointr = 0
-
-                
+                                                        
+            if( motiontime >= 400):                    
                 alpha = min(count /  1000, 1)
                 alpha2 = min(count2 / 1000, 1)
                 if motiontime <= 2500:
@@ -124,109 +122,16 @@ if __name__ == '__main__':
                         qDes[i + 8] = (1-alpha2) * end_q[5] + alpha2 * start_q[2]
                     count2 += 1
 
-
-            cmd.motorCmd[d['FR_0']].q = qDes[0]
-            cmd.motorCmd[d['FR_0']].dq = 0
-            cmd.motorCmd[d['FR_0']].Kp = Kp[0]
-            cmd.motorCmd[d['FR_0']].Kd = Kd[0]
-            cmd.motorCmd[d['FR_0']].tau = 0.0
-
-            cmd.motorCmd[d['FR_1']].q = qDes[1]
-            cmd.motorCmd[d['FR_1']].dq = 0
-            cmd.motorCmd[d['FR_1']].Kp = Kp[1]
-            cmd.motorCmd[d['FR_1']].Kd = Kd[1]
-            cmd.motorCmd[d['FR_1']].tau = 0.0
-
-            cmd.motorCmd[d['FR_2']].q =  qDes[2]
-            cmd.motorCmd[d['FR_2']].dq = 0
-            cmd.motorCmd[d['FR_2']].Kp = Kp[2]
-            cmd.motorCmd[d['FR_2']].Kd = Kd[2]
-            cmd.motorCmd[d['FR_2']].tau = 0.0
-
+            for i in range( 0, len(d) ):
+                setup_motor(cmd, i, qDes[i], 0, Kp[i], Kd[i], 0.0)
             
-
-            cmd.motorCmd[d['FL_0']].q = qDes[3]
-            cmd.motorCmd[d['FL_0']].dq = 0
-            cmd.motorCmd[d['FL_0']].Kp = Kp[3]
-            cmd.motorCmd[d['FL_0']].Kd = Kd[3]
-            cmd.motorCmd[d['FL_0']].tau = 0.0
-
-            cmd.motorCmd[d['FL_1']].q = qDes[4]
-            cmd.motorCmd[d['FL_1']].dq = 0
-            cmd.motorCmd[d['FL_1']].Kp = Kp[4]
-            cmd.motorCmd[d['FL_1']].Kd = Kd[4]
-            cmd.motorCmd[d['FL_1']].tau = 0.0
-
-            cmd.motorCmd[d['FL_2']].q =  qDes[5]
-            cmd.motorCmd[d['FL_2']].dq = 0
-            cmd.motorCmd[d['FL_2']].Kp = Kp[5]
-            cmd.motorCmd[d['FL_2']].Kd = Kd[5]
-            cmd.motorCmd[d['FL_2']].tau = 0.0
-
-
-            cmd.motorCmd[d['RR_0']].q = qDes[6]
-            cmd.motorCmd[d['RR_0']].dq = 0
-            cmd.motorCmd[d['RR_0']].Kp = Kp[6]
-            cmd.motorCmd[d['RR_0']].Kd = Kd[6]
-            cmd.motorCmd[d['RR_0']].tau = 0.0
-
-            cmd.motorCmd[d['RR_1']].q = qDes[7]
-            cmd.motorCmd[d['RR_1']].dq = 0
-            cmd.motorCmd[d['RR_1']].Kp = Kp[7]
-            cmd.motorCmd[d['RR_1']].Kd = Kd[7]
-            cmd.motorCmd[d['RR_1']].tau = 0.0
-
-            cmd.motorCmd[d['RR_2']].q =  qDes[8]
-            cmd.motorCmd[d['RR_2']].dq = 0
-            cmd.motorCmd[d['RR_2']].Kp = Kp[8]
-            cmd.motorCmd[d['RR_2']].Kd = Kd[8]
-            cmd.motorCmd[d['RR_2']].tau = 0.0
-
-            
-
-            cmd.motorCmd[d['RL_0']].q = qDes[9]
-            cmd.motorCmd[d['RL_0']].dq = 0
-            cmd.motorCmd[d['RL_0']].Kp = Kp[9]
-            cmd.motorCmd[d['RL_0']].Kd = Kd[9]
-            cmd.motorCmd[d['RL_0']].tau = 0.0
-
-            cmd.motorCmd[d['RL_1']].q = qDes[10]
-            cmd.motorCmd[d['RL_1']].dq = 0
-            cmd.motorCmd[d['RL_1']].Kp = Kp[10]
-            cmd.motorCmd[d['RL_1']].Kd = Kd[10]
-            cmd.motorCmd[d['RL_1']].tau = 0.0
-
-            cmd.motorCmd[d['RL_2']].q =  qDes[11]
-            cmd.motorCmd[d['RL_2']].dq = 0
-            cmd.motorCmd[d['RL_2']].Kp = Kp[11]
-            cmd.motorCmd[d['RL_2']].Kd = Kd[11]
-            cmd.motorCmd[d['RL_2']].tau = 0.0
-            # cmd.motorCmd[d['FR_2']].tau = 2 * sin(t*freq_rad)
-            if motiontime % 10 == 0:
-                # print(dir(state.motorState[d['FR_0']]))
+            if motiontime % 10 == 0:                
                 print("Torque :   ", end = "")
-                print(int(state.motorState[d['FR_0']].tauEst * 100), end = "  ")
-                print(int(state.motorState[d['FR_1']].tauEst * 100), end = "  ")
-                print(int(state.motorState[d['FR_2']].tauEst * 100), end = "  ")
-
-                print(int(state.motorState[d['FL_0']].tauEst * 100), end = "  ")
-                print(int(state.motorState[d['FL_1']].tauEst * 100), end = "  ")
-                print(int(state.motorState[d['FL_2']].tauEst * 100), end = "  ")
-
-                print(int(state.motorState[d['RR_0']].tauEst * 100), end = "  ")
-                print(int(state.motorState[d['RR_1']].tauEst * 100), end = "  ")
-                print(int(state.motorState[d['RR_2']].tauEst * 100), end = "  ")
-
-                print(int(state.motorState[d['RL_0']].tauEst * 100), end = "  ")
-                print(int(state.motorState[d['RL_1']].tauEst * 100), end = "  ")
-                print(int(state.motorState[d['RL_2']].tauEst * 100))      
-
-
+                for num, value in enumerate(d.values()):
+                    print(int(state.motorState[ value ].tauEst * 100), end = " ")
+                                    
         if(motiontime > 10):
              safe.PowerProtect(cmd, state, 1)
-
-
-
 
         udp.SetSend(cmd)
         udp.Send()
