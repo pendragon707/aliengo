@@ -16,11 +16,7 @@ LOW_STATE_LENGTH = 771
 
 def jointLinearInterpolation(initPos, targetPos, rate):
 
-    #rate = np.fmin(np.fmax(rate, 0.0), 1.0)
-    if rate > 1.0:
-        rate = 1.0
-    elif rate < 0.0:
-        rate = 0.0
+    rate = min(max(rate, 0.0), 1.0)
 
     p = initPos*(1-rate) + targetPos*rate
     return p
@@ -106,20 +102,22 @@ if __name__ == '__main__':
                     
                     for i in range( 0, len(d) - 6 , 3):
                         qDes[i] = start_q[0]
-                        qDes[i + 1] =  alpha * end_q[1] + (1-alpha) * start_q[1]
-                        qDes[i + 2] = alpha * end_q[2] + (1-alpha) * start_q[2]
+                        qDes[i + 1] = jointLinearInterpolation(start_q[1], end_q[1], alpha)
+                        qDes[i + 2] = jointLinearInterpolation(start_q[2], end_q[2], alpha)
+
                         qDes[i + 6] = start_q[0]
-                        qDes[i + 7] =  alpha * end_q[4] + (1-alpha) * start_q[1]
-                        qDes[i + 8] = alpha * end_q[5] + (1-alpha) * start_q[2]
+                        qDes[i + 7] = jointLinearInterpolation(start_q[1], end_q[4], alpha)
+                        qDes[i + 8] = jointLinearInterpolation(start_q[2], end_q[5], alpha)
                     count += 1
                 else:
                     for i in range( 0, len(d) - 6 , 3):
                         qDes[i] = start_q[0]
-                        qDes[i + 1] =  (1-alpha2) * end_q[1] + alpha2 * start_q[1]
-                        qDes[i + 2] = (1-alpha2) * end_q[2] + alpha2 * start_q[2]
+                        qDes[i + 1] = jointLinearInterpolation(end_q[1], start_q[1], alpha2)
+                        qDes[i + 2] = jointLinearInterpolation(end_q[2], start_q[2], alpha2)
+
                         qDes[i + 6] = start_q[0]
-                        qDes[i + 7] =  (1-alpha2) * end_q[4] + alpha2 * start_q[1]
-                        qDes[i + 8] = (1-alpha2) * end_q[5] + alpha2 * start_q[2]
+                        qDes[i + 7] = jointLinearInterpolation(end_q[4], start_q[1], alpha2)
+                        qDes[i + 8] = jointLinearInterpolation(end_q[5], start_q[2], alpha2)
                     count2 += 1
 
             for i in range( 0, len(d) ):
@@ -129,6 +127,7 @@ if __name__ == '__main__':
                 print("Torque :   ", end = "")
                 for num, value in enumerate(d.values()):
                     print(int(state.motorState[ value ].tauEst * 100), end = " ")
+                    print()
                                     
         if(motiontime > 10):
              safe.PowerProtect(cmd, state, 1)
