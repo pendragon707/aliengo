@@ -3,12 +3,10 @@
 import sys
 import time
 import math
-#import numpy as np
 
 sys.path.append('../lib/python/amd64')
 import robot_interface_aliengo as sdk
 
-# low cmd
 TARGET_PORT = 8007
 LOCAL_PORT = 8082
 TARGET_IP = "192.168.123.10"   # target IP address
@@ -38,15 +36,15 @@ if __name__ == '__main__':
     VelStopF  = 16000.0
     HIGHLEVEL = 0x00
     LOWLEVEL  = 0xff
-    start_q = [-0.15, 1.18, -2.8]
+    start_q = [-0.15, 1.18, -2.8] * 4
     end_q = [0.0, 0.3, -1, 0.0, 1, -1]
     dt = 0.002
-    qInit = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    qDes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    qInit = [0] * 12
+    qDes = [0] * 12
     sin_count = 0
     rate_count = 0
-    Kp = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    Kd = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    Kp = [0] * 12
+    Kd = [0] * 12
 
     udp = sdk.UDP(LOCAL_PORT, TARGET_IP, TARGET_PORT, LOW_CMD_LENGTH, LOW_STATE_LENGTH, -1)
     #udp = sdk.UDP(8082, "192.168.123.10", 8007, 610, 771)
@@ -64,10 +62,6 @@ if __name__ == '__main__':
     while True:
         time.sleep(0.002)
         motiontime += 1
-
-        # print(motiontime)
-        # print(state.imu.rpy[0])
-        
         
         udp.Recv()
         udp.GetRecv(state)
@@ -76,21 +70,10 @@ if __name__ == '__main__':
 
             # first, get record initial position
             if( motiontime >= 0 and motiontime < 10):
-                qInit[0] = state.motorState[d['FR_0']].q
-                qInit[1] = state.motorState[d['FR_1']].q
-                qInit[2] = state.motorState[d['FR_2']].q
 
-                qInit[3] = state.motorState[d['FL_0']].q
-                qInit[4] = state.motorState[d['FL_1']].q
-                qInit[5] = state.motorState[d['FL_2']].q
+                for num, value in enumerate(d.values()):
+                    qInit[num] = state.motorState[value].q
 
-                qInit[6] = state.motorState[d['RR_0']].q
-                qInit[7] = state.motorState[d['RR_1']].q
-                qInit[8] = state.motorState[d['RR_2']].q
-
-                qInit[9] = state.motorState[d['RL_0']].q
-                qInit[10] = state.motorState[d['RL_1']].q
-                qInit[11] = state.motorState[d['RL_2']].q
                 print("Front: ", qInit[0], qInit[1], qInit[2])
                 print("Rear: ", qInit[6], qInit[7], qInit[8])
             # second, move to the origin point of a sine movement with Kp Kd
@@ -103,22 +86,9 @@ if __name__ == '__main__':
                 # Kd = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
                 Kp = [90] * 12
                 Kd = [1] * 12
-                
-                qDes[0] = jointLinearInterpolation(qInit[0], start_q[0], rate)
-                qDes[1] = jointLinearInterpolation(qInit[1], start_q[1], rate)
-                qDes[2] = jointLinearInterpolation(qInit[2], start_q[2], rate)
 
-                qDes[3] = jointLinearInterpolation(qInit[3], start_q[0], rate)
-                qDes[4] = jointLinearInterpolation(qInit[4], start_q[1], rate)
-                qDes[5] = jointLinearInterpolation(qInit[5], start_q[2], rate)
-
-                qDes[6] = jointLinearInterpolation(qInit[6], start_q[0], rate)
-                qDes[7] = jointLinearInterpolation(qInit[7], start_q[1], rate)
-                qDes[8] = jointLinearInterpolation(qInit[8], start_q[2], rate)
-
-                qDes[9] = jointLinearInterpolation(qInit[9], start_q[0], rate)
-                qDes[10] = jointLinearInterpolation(qInit[10], start_q[1], rate)
-                qDes[11] = jointLinearInterpolation(qInit[11], start_q[2], rate)
+                for num, value in enumerate(d.values()):
+                    qDes[num] = jointLinearInterpolation(qInit[num], start_q[num], rate)
             
             # last, do sine wave
             freq_Hz = 1
@@ -154,29 +124,6 @@ if __name__ == '__main__':
                         qDes[i + 8] = (1-alpha2) * end_q[5] + alpha2 * start_q[2]
                     count2 += 1
 
-                # sin_joint1 = 0.6 * sin(3*M_PI*sin_count/1000.0)
-                # sin_joint2 = -0.9 * sin(3*M_PI*sin_count/1000.0)
-                # sin_joint1 = 0.2 * math.sin(t*freq_rad)
-                # sin_joint2 = -0.2 * math.sin(t*freq_rad)
-                # sin_joint3 = 0.2 * math.sin(t*freq_rad)
-                # sin_joint4 = -0.2 * math.sin(t*freq_rad)
-                # qDes[0] = sin_mid_q[0]
-                # qDes[1] = sin_mid_q[1] + sin_joint1
-                # qDes[2] = sin_mid_q[2] + sin_joint2
-
-                # qDes[3] = sin_mid_q[3]
-                # qDes[4] = sin_mid_q[4] + sin_joint3
-                # qDes[5] = sin_mid_q[5] + sin_joint4
-
-                # qDes[6] = sin_mid_q[0]
-                # qDes[7] = sin_mid_q[1] + sin_joint1
-                # qDes[8] = sin_mid_q[2] + sin_joint2
-
-                # qDes[9] = sin_mid_q[3]
-                # qDes[10] = sin_mid_q[4] + sin_joint3
-                # qDes[11] = sin_mid_q[5] + sin_joint4
-                # qDes[2] = sin_mid_q[2]
-            
 
             cmd.motorCmd[d['FR_0']].q = qDes[0]
             cmd.motorCmd[d['FR_0']].dq = 0
