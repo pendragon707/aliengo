@@ -127,7 +127,7 @@ if __name__ == '__main__':
                 print("Torque :   ", end = "")
                 for num, value in enumerate(d.values()):
                     print(int(state.motorState[ value ].tauEst * 100), end = " ")
-                    print()
+                print()
                                     
         if(motiontime > 10):
              safe.PowerProtect(cmd, state, 1)
